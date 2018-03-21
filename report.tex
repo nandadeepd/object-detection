@@ -1,0 +1,117 @@
+
+\documentclass[%
+ aip,
+ jmp,%
+ amsmath,amssymb,
+%preprint,%
+ reprint,%
+%author-year,%
+%author-numerical,%
+]{revtex4-1}
+
+\usepackage{graphicx}% Include figure files
+\usepackage{dcolumn}% Align table columns on decimal point
+\usepackage{bm}% bold math
+\usepackage[font=footnotesize,labelfont=bf]{caption}
+\usepackage{placeins}
+%\usepackage[mathlines]{lineno}% Enable numbering of text and display math
+%\linenumbers\relax % Commence numbering lines
+
+\begin{document}
+
+
+\title[CS 510 Introduction to Visual Computing]{Object Detection using HAAR and HOG descriptors}% Force line breaks with \\
+
+\author{Davuluru Nandadeep}
+ \email{davuluru@pdx.edu}
+
+
+\date{\today}% It is always \today, today,
+             %  but any date may be explicitly specified
+
+\keywords{Object detection, HAAR, Histogram of Oriented Gradients, Support Vector Machines, classifiers}%Use showkeys class option if keyword
+                              %display desired
+\maketitle
+
+
+\section{Introduction}
+% \vspace{-10pt}
+Image processing techniques have developed over the years and especially with the increase in applications due to better computational resources that support these operations. Frameworks have emerged over years to expedite core functionality. On the contrary, there has been an exponential increase in machine learning algorithms, more importantly, deep learning has taken over literally every domain in the current generation. Therefore, this report aims at exploring areas of image processing using conventionality. 
+I have laid emphasis in particular on detecting objects in images. Frameworks like openCV come built in with detectors for popular objects like pedestrians, cars. But what do we do if we want to detect an object of interest? Do we just try and throw millions of examples at a neural network and hope for some pattern recognition? But then how do we scrape so much data about the object of interest? Do we just rely on ImageNet or manually curate images over time? I specifically look to answer these questions by trying to achieve such detection using classical algorithms which don't require the magnitude of dataset expected by a neural network and still comparable detection.
+
+\section{Approach}
+In this project, I've used and compared the approaches of two methods to perform detection. The similarity between the two methods are that they rely on image descriptors at different granularity. They're both relatively old - around two decades old. In the first method, I extract Haar-like features for an image where, a window of the target size is moved over the input image, and for each subsection of the image the Haar-like feature is calculated. This difference is then compared to a learned threshold that separates non-objects from objects. Because such a Haar-like feature is only a weak learner or classifier (its detection quality is slightly better than random guessing) a large number of Haar-like features are necessary to describe an object with sufficient accuracy. 
+
+The other descriptor exploited in this project is known as a Histogram of Oriented Gradients. The essential thought behind the histogram of oriented gradients descriptor is that local object appearance and shape within an image can be described by the distribution of intensity gradients or edge directions. The image is divided into small connected regions called cells, and for the pixels within each cell, a histogram of gradient directions is compiled. The descriptor is the concatenation of these histograms. For improved accuracy, the local histograms can be contrast-normalized by calculating a measure of the intensity across a larger region of the image, called a block, and then using this value to normalize all cells within the block. This normalization results in better invariance to changes in illumination and shadowing. This \textit{invariance} is fed to a support vector machine for a few images that contain the object of interest. 
+
+\section{Dataset}
+As it turns out, dataset is inevitable for any image processing task and for object detection, this goes without saying. Therefore, in this section, I describe how I generated my dataset. Another similarity between the two descriptors are that they both need a set of positive and negative images. The way Haar classifiers take in each positive image and merge with every negative image in kind of a brute force approach. It does so with slight data augmentation where the positive image is flipped, rotated, darkened, contrasted with the negative image. 
+For HOG descriptors, it is simpler by just calculating the descriptor described in the previous section for each of the positive and negative image. 
+
+\section{Haar-like features}
+First, I started by manually choosing a feature type (e.g. Rectangle A). This gives me a mask with which I was able to train some weak classifiers. In order to avoid moving the mask pixel by pixel and retraining (which would take huge amounts of time and not any better accuracy), I specified how much the feature moves in x and y direction per trained weak classifier. The size of the jumps depend on dataset size. The goal is to have the mask be able to move in and out of the detected object. The size of the feature can also be variable.
+
+After I trained multiple classifiers with a respective feature (i.e. mask position), the scope extends to proceed with AdaBoost and Cascade training as usual. Here, I chose to go on with Cascade training. 
+
+\begin{figure}[h]
+\includegraphics[scale= 1.5, width=5cm]{haar.png}
+\caption{Haar-like features extracted for a merged image}
+\label{fig:haar}
+\end{figure}
+\FloatBarrier
+
+
+\section{Histogram of oriented gradients}
+
+Finding the "gradient" of a pixel is finding if there is an edge passing through that pixel, the orientation of that edge and how visible is this edge. As we are taking into account the direction of the edges, we say "oriented gradients". The "histogram" counts how many pixels have an edge with a specific orientation. The pixels that have visible edges count more than the pixels that have soft edges. For example if we have a square in the image, we will see that the HOG has a lot of pixels counted in the vertical direction, and the same amount of pixels counted in the horizontal direction, no pixels would get counted in the diagonal directions. If we had a rectangle laying flat, there would be more pixels in the horizontal direction than in the vertical, because the horizontal edges are longer. If we had a diamond, we would count pixels with diagonal edges. This way you can recognize shapes just comparing the histograms (how many pixels have edges in each direction).
+
+\begin{figure}[h]
+\includegraphics[scale= 1.5, width=5cm]{hog1.png}
+\caption{histogram of oriented gradients for a training image}
+\label{fig:hog}
+\end{figure}
+\FloatBarrier
+
+\section{observations}
+
+The project doesn't focus on achieving the state-of-art claims in the field but sure does what it claims. Below, in the images, are the results of haar cascade classifiers that were trained to detect a watch. It is then tested to detect a watch from an image taken out of my phone. In the other image, the classification of testing images - whether they contain the desired image or not have been printed out. Evidently, there's a high recall and precision and therefore I expect this to stand good for basic object detection. 
+
+\begin{figure}[h]
+\includegraphics[scale= 1.5, width=5cm]{haar-result.png}
+\caption{object detected using haar classifiers}
+\label{fig:haar-result}
+\end{figure}
+
+\begin{figure}[h]
+\includegraphics[scale= 1.5, width=5cm]{hog-result.png}
+\caption{accuracy metrics for the SVM using hog features}
+\label{fig:hog-result}
+\end{figure}
+\FloatBarrier
+
+\section{acknowledgements}
+I would like to thank our course instructor, Prof. Simon Niklaus to give me this opportunity to explore my interests along with extending his support to full capacity when needed. My appreciation definitely goes out to the opencv community for top notch documentation. I also would like to thank the authors of the research papers(linked below) whose work I based this project off of. 
+
+\begin{thebibliography}{9}
+\bibitem{sniklaus} 
+Simon Niklaus - course instructor 
+\\\texttt{http://sniklaus.com/about/welcome} 
+ 
+\bibitem{haar-references} 
+The original Viola Jones face detection 
+\\\texttt{https://www.cs.cmu.edu/~efros/courses/
+LBMV07/Papers/viola-cvpr-01.pdf} 
+
+ 
+\bibitem{hog-references} 
+Histogram of oriented gradients demystified
+\\\texttt{https://www.learnopencv.com/histogram-of-oriented-gradients/}
+\end{thebibliography}
+
+
+
+
+
+\end{document}
+%
+% ****** End of file vision.tex ******
